@@ -1,0 +1,69 @@
+# Load the necessary libraries
+library(httr)
+library(jsonlite)
+library(readr)
+
+# Initialize an empty list to store dataframes
+data_list <- list()
+
+# Loop through the pages 1 to 3
+for (page_num in 1:3) {
+  # Define the URL with the page number
+  url <- paste0("https://api.veritree.com/api/resellers/1/planting-sites?page=", page_num, "&page_size=50&_v=11.0.0")
+  
+  # Fetch the JSON data
+  response <- GET(url)
+  
+  # Check if the request was successful
+  if (status_code(response) == 200) {
+    # Extract the content and convert it to text
+    json_content <- content(response, "text")
+    
+    # Parse the JSON content into a list
+    json_list <- fromJSON(json_content, flatten = TRUE)
+    
+    # Extract the "data" element
+    if ("data" %in% names(json_list)) {
+      df <- as.data.frame(json_list$data)
+      
+      # Assign the dataframe to a variable based on the page number
+      assign(paste0("df_page_", page_num), df)
+      
+      # Append the dataframe to the list
+      data_list[[page_num]] <- df
+    } else {
+      stop(paste("No 'data' element found in the JSON response for page", page_num))
+    }
+  } else {
+    # Handle the error
+    stop(paste("Failed to fetch data from the URL for page", page_num))
+  }
+}
+
+# Combine all dataframes into one
+combined_df <- do.call(rbind, data_list)
+
+
+
+
+# Convert the combined dataframe to JSON and save to a file
+json_output1 <- toJSON(df_page_1, pretty = TRUE)
+write(json_output1, file = "verritree1.json")
+
+# Convert the combined dataframe to CSV and save to a file
+write_csv(df_page_1, "verritree1.csv")
+
+# Convert the combined dataframe to JSON and save to a file
+json_output2 <- toJSON(df_page_2, pretty = TRUE)
+write(json_output2, file = "verritree2.json")
+
+# Convert the combined dataframe to CSV and save to a file
+write_csv(df_page_2, "verritree2.csv")
+
+
+# Convert the combined dataframe to JSON and save to a file
+json_output3 <- toJSON(df_page_3, pretty = TRUE)
+write(json_output3, file = "verritree3.json")
+
+# Convert the combined dataframe to CSV and save to a file
+write_csv(df_page_3, "verritree3.csv")

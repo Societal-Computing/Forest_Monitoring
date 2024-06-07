@@ -1,0 +1,28 @@
+{
+    "id": "7C505A94",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1717415731751.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "id": "ce14826269994182be4bd62f4424bbb9",
+        "name": "data_list",
+        "title": "data_list",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 30118312141586551,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1717415731751,
+    "read_only": false,
+    "read_only_alternatives": []
+}
