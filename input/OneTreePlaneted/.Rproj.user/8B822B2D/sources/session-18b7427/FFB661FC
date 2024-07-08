@@ -1,0 +1,27 @@
+{
+    "id": "FFB661FC",
+    "path": "~/Data Acquisition/OneTreePlaneted/src.R",
+    "project_path": "src.R",
+    "type": "r_source",
+    "hash": "2527976062",
+    "contents": "",
+    "dirty": false,
+    "created": 1720441375904.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "47,24",
+        "scrollLine": "30"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1720441584,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1720441584918,
+    "read_only": false,
+    "read_only_alternatives": []
+}
