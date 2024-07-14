@@ -34,3 +34,12 @@ df <- df %>%
 
 # Print the first few rows of the dataframe
 head(df)
+
+# Write dataframe to CSV file
+write.csv(df, "projects_data.csv", row.names = FALSE)
+
+# Write dataframe to JSON file
+write_json(df, "projects_data.json", pretty = TRUE)
+
+# Print the first few rows of the dataframe
+head(df)
