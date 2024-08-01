@@ -1,8 +1,3 @@
-"id","type","geometry_type","geometry_coordinates","properties_id","properties_name","properties_slug","properties_type","properties_image","properties_region","properties_countries","properties_activity_type"
-"omper396lw3gxwq0","Feature","Point",<list>,"omper396lw3gxwq0","Somerset East Spekboom Restoration","cpi2301","project","YFs3KVkT5wyLQp2XALcDPjv9MuhpUa4sPmlQbUXo.jpg","Eastern Cape",<list>,<list>
-"g0drw38lmmjx4z9q","Feature","Point",<list>,"g0drw38lmmjx4z9q","Rwanda Bamboo River Restoration","cpi2207","project","sCEOaHMQkFtuiXjR7Q2Ke8puX9pPrJCyqLorQmq0.jpg","Muhanga, Ruhango & Karongi",<list>,<list>
-"ln5pa3mml739ogex","Feature","Point",<list>,"ln5pa3mml739ogex","Mahkanda Spekboom Restoration","cpi2203","project","icVp9uj48DKUSjliX2dPQUmKTUDPVz9JyYRVIYYf.jpg","Eastern Cape",<list>,<list>
-"wermv3llmd36koql","Feature","Point",<list>,"wermv3llmd36koql","East India Tasar Afforestation","cpi2209","project","C3WduX0jsTP3xILKpdH2ZGfGdhYlilIgWV6iEJHg.jpg","Simdega & Purulia",<list>,<list>
-"q4d7myr9gkya6kzx","Feature","Point",<list>,"q4d7myr9gkya6kzx","North Bandai Bamboo Reforestation","cpi2103","project","XTk0EmUQhxHvtQOjfUHiXel0W4CtLjchNVfiz4zH.jpg","Ashanti",<list>,<list>
-"abwdoj45zbykm8zg","Feature","Point",<list>,"abwdoj45zbykm8zg","Eastern Cape Bamboo Revegetation","cpi2208","project","jyiCPPdXRpYPwd1vNVDAJRz4XmW6OTiCwhrb6TNF.jpg","Eastern Cape",<list>,<list>
-"e97xby0pxr3pvo6g","Feature","Point",<list>,"e97xby0pxr3pvo6g","Tudor Creek Mangrove Restoration","cpi2105","project","BwIWvUXzTIE89VQlNppNsGyLuJFYEuOT6gmnBY2W.jpg","Mombasa",<list>,<list>
+version https://git-lfs.github.com/spec/v1
+oid sha256:938c31bccce9bccb1d78cf689f59cce9a5ca84d596c37a72fda82538d408bf64
+size 1574
