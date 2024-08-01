@@ -1,1 +1,5 @@
+<<<<<<< HEAD
 *.csv filter=lfs diff=lfs merge=lfs -text
+=======
+*.gpkg filter=lfs diff=lfs merge=lfs -text
+>>>>>>> 9df4f2cf5dd9f7d3d9afed81dad918adf9230b35
