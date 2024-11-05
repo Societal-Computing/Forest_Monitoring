@@ -1,0 +1,5 @@
+﻿Steps  to obtain the dataset
+1.Run all different organization preprocessing files (Face_Future_metadata_prepro.ipynb,open_forest_projests_Data_filtering.ipynb,Plant_Planet_Meta_Data_preprocessing .ipynb,restor.ipynb,Tree_Nation-meta_data_pre.ipynb)
+2.Run the ‘Remodified_Database_Consolidation.ipynb’ notebook to combine all data frames into a single geojson file.
+3.Run the file ‘Feature_collection_direct__GEE_columns_generation.ipynb’ file to generate all additional files from google earth engine(You need to have created a google earth engine account(And cloud project) and have space in the google drive of the google account you use to create google earth engine as all earth engine related exports are either store in google cloud or drive before export to local system).
+4.Run ‘Biomass_Data_Extraction.ipynb’ to extract biomass,precipitation,temperature max and temperature min from the  related rasters downloaded to your local system.
