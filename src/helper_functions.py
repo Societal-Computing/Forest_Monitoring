@@ -81,3 +81,32 @@ def convert_3d_to_2d(polygon):
         new_coords = [(x, y) for x, y, z in polygon.exterior.coords]
         return Polygon(new_coords)
     return polygon
+
+
+
+#######################################
+### Tree_Nation-meta_data_pre.ipynb ###
+#######################################
+
+def swap_lat_lon(coords):
+    """Swap the positions of latitude and longitude in a list of coordinates."""
+    return [(lon, lat) for lat, lon in coords]
+
+def convert_to_list(data):
+    if data is None:
+        return None
+    if isinstance(data, list):
+        return swap_lat_lon(data)
+    if isinstance(data, str):
+        try:
+            if data.endswith(","):
+                data = data[:-1]
+            coords = ast.literal_eval(data)
+            return swap_lat_lon(coords)
+        except (SyntaxError, ValueError):
+            print(f"Failed to convert string to list: {data}")
+            return None
+    return None
+
+
+
