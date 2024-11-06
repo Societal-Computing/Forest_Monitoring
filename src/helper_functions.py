@@ -108,5 +108,31 @@ def convert_to_list(data):
             return None
     return None
 
+#################################################
+### open_forest_projests_Data_filtering.ipynb ###
+#################################################
+
+def remove_trailing_zeros(s):
+  
+    if s.startswith('list(c(') and s.endswith(')'):
+       
+        s = s[7:-1]
+  
+    list_of_strings = s.split(',')
+   
+    list_of_strings = [s.strip().lstrip('c(').rstrip(')') for s in list_of_strings]
+    
+    list_of_floats = list(map(float, list_of_strings))
+   
+    while list_of_floats and list_of_floats[-1] == 0.0:
+        list_of_floats.pop()
+   
+    return ', '.join(map(str, list_of_floats))
+
+
+
+
+
+
 
 
