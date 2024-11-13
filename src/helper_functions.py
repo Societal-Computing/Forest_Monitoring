@@ -4,13 +4,19 @@ import pandas as pd
 import json
 import requests
 import ast
-from shapely.geometry import shape, Polygon, MultiPolygon,mapping
+from shapely.geometry import shape, Polygon, MultiPolygon, mapping, MultiLineString, MultiPoint, LineString, Point
 from shapely.ops import transform
 import pyproj
 import numpy as np
 from scipy import stats
 from shapely import wkt
 import geopandas as gpd
+from bs4 import BeautifulSoup
+from io import BytesIO
+import time
+from random import uniform
+import zipfile
+
 
 ##################################################
 ### Plant_Planet_Meta_Data_preprocessing.ipynb ###
@@ -130,8 +136,115 @@ def remove_trailing_zeros(s):
     return ', '.join(map(str, list_of_floats))
 
 
+####################################
+### extracting_verra_sites.ipynb ###
+####################################
 
 
+def kmz_to_kml(content):
+    try:
+        with zipfile.ZipFile(BytesIO(content)) as kmz:
+            with kmz.open(next(f for f in kmz.namelist() if f.endswith('.kml'))) as kml_file:
+                return kml_file.read().decode('utf-8')
+    except zipfile.BadZipFile:
+        return content.decode('utf-8')
+
+# Function to fetch and parse KML file
+def fetch_kml(uri):
+    response = requests.get(uri)
+    if response.status_code == 200:
+        return response.content
+    else:
+        print(f"Failed to download KML file from {uri}")
+        return None
+
+# Function to parse KML and convert to geometries
+def parse_kml(content):
+    soup = BeautifulSoup(content, 'xml')
+    geometries = []
+
+    # Find all MultiGeometry elements, which can host multiple Polygons
+    for multi_geom in soup.find_all('MultiGeometry'):
+        polygons = []
+        linestrings = []
+        points = []
+        for polygon in multi_geom.find_all('Polygon'):
+            if polygon.find('coordinates').string == None:
+                polygons.append(Polygon())
+                continue
+            coords = polygon.find('coordinates').string.strip().split()
+            c_points = [tuple(map(float, c.split(','))) for c in coords]
+            polygons.append(Polygon(c_points))
+        for linestring in multi_geom.find_all('LineString'):
+            if linestring.find('coordinates').string == None:
+                linestrings.append(LineString())
+                continue
+            coords = linestring.find('coordinates').string.strip().split()
+            c_points = [tuple(map(float, c.split(','))) for c in coords]
+            if len(c_points) != 1:
+                linestrings.append(LineString(c_points))
+            else:
+                geometries.append(Point(c_points))
+        for point in multi_geom.find_all('Point'):
+            if point.find('coordinates').string == None:
+                points.append(Point())
+                continue
+            coords = point.find('coordinates').string.strip().split()
+            c_points = [tuple(map(float, c.split(','))) for c in coords]
+            points.append(Point(c_points))
+        if polygons:
+            geometries.append(MultiPolygon(polygons))
+        if linestrings:
+            geometries.append(MultiLineString(linestrings))
+        if points:
+            geometries.append(MultiPoint(points))
+
+    # Also check for geometries that are not part of MultiGeometry
+    # Check for Polygons
+    for polygon in soup.find_all('Polygon'):
+        if polygon.parent.name != 'MultiGeometry':
+            if polygon.find('coordinates').string == None:
+                geometries.append(Polygon())
+                continue
+            coords = polygon.find('coordinates').string.strip().split()
+            c_points = [tuple(map(float, c.split(','))) for c in coords]
+            geometries.append(Polygon(c_points))
+
+    # Check for LineStrings
+    for linestring in soup.find_all('LineString'):
+        if linestring.parent.name != 'MultiGeometry':
+            if linestring.find('coordinates').string == None:
+                geometries.append(LineString())
+                continue
+            coords = linestring.find('coordinates').string.strip().split()
+            c_points = [tuple(map(float, c.split(','))) for c in coords]
+            if len(c_points) != 1:
+                geometries.append(LineString(c_points))
+            else:
+                geometries.append(Point(c_points))
+
+    # Check for Points
+    for point in soup.find_all('Point'):
+        if point.parent.name != 'MultiGeometry':
+            if point.find('coordinates').string == None:
+                geometries.append(Point())
+                continue
+            coords = point.find('coordinates').string.strip().split()
+            c_points = [tuple(map(float, c.split(','))) for c in coords]
+            geometries.append(Point(c_points))
+
+    return geometries
+
+# Main processing
+def process_kml_uris(kml_uris):
+    all_geometries = []
+    for uri in kml_uris:
+        uri_content = fetch_kml(uri)
+        if uri_content:
+            kml_content = kmz_to_kml(uri_content)
+            geometries = parse_kml(kml_content)
+            all_geometries.extend(geometries)
+    return all_geometries
 
 
 
