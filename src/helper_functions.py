@@ -2,6 +2,8 @@
 
 import pandas as pd
 import json
+import rasterio
+import os
 import requests
 import ast
 from shapely.geometry import shape, Polygon, MultiPolygon, mapping, MultiLineString, MultiPoint, LineString, Point
@@ -246,6 +248,67 @@ def process_kml_uris(kml_uris):
             all_geometries.extend(geometries)
     return all_geometries
 
+####################################
+### weather_variables_extraction.ipynb ###
+####################################
+# Extracting Year of interest from our polygon "Planting date feature"
+def extract_year(date_str):
+    if pd.isna(date_str):
+        return np.nan
+    try:
+      
+        date_parsed = pd.to_datetime(date_str, errors='coerce')
+        if pd.notna(date_parsed):
+            return date_parsed.year
+    except ValueError:
+        pass  
+    
+   
+    if isinstance(date_str, str) and date_str.isdigit() and len(date_str) == 4:
+        return int(date_str)
+    
+    return np.nan
+##################################################
+### biomass_data_extraction.ipynb ###
+# extracting raster values without transforming CRS inside
+def extract_raster_values(raster_path, transformed_centroids):
+    with rasterio.open(raster_path) as src:
+        values = []
+        for point in transformed_centroids.geometry:
+            row, col = src.index(point.x, point.y)
+            if (0 <= row < src.height) and (0 <= col < src.width):
+                value = src.read(1)[row, col]
+                values.append(value)
+            else:
+                values.append(np.nan)
+        return values
 
-
-
+#  processing GeoDataFrame in chunks with CRS transformation before extraction
+def process_in_chunks(gdf, chunk_size, raster_crs, raster_dir, period):
+    results_df = pd.DataFrame()
+    
+    for start in range(0, len(gdf), chunk_size):
+        end = start + chunk_size
+        chunk = gdf.iloc[start:end]
+        
+        if chunk.crs.is_geographic:
+            chunk = chunk.to_crs("EPSG:3395")
+        chunk['centroid'] = chunk.geometry.centroid
+        
+        # Transform centroids to match the raster CRS
+        transformed_centroids = chunk['centroid'].to_crs(raster_crs)
+        
+        biomass_values = [0] * len(chunk)
+        
+        for raster_file in os.listdir(raster_dir):
+            if raster_file.endswith(".tif"):
+                raster_path = os.path.join(raster_dir, raster_file)
+                values = extract_raster_values(raster_path, transformed_centroids)
+                biomass_values = [x + y if not np.isnan(y) else x for x, y in zip(biomass_values, values)]
+        
+        chunk[f'Biomass_change_{period}'] = biomass_values
+        chunk.drop(columns=['centroid'], inplace=True)
+        
+        results_df = pd.concat([results_df, chunk])
+    
+    return results_df.to_crs(gdf.crs)
