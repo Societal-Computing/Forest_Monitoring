@@ -18,6 +18,8 @@ from io import BytesIO
 import time
 from random import uniform
 import zipfile
+import ee
+import geemap
 
 
 ##################################################
@@ -248,9 +250,251 @@ def process_kml_uris(kml_uris):
             all_geometries.extend(geometries)
     return all_geometries
 
+
 ####################################
+### gee_columns_generation.ipynb ###
+####################################
+
+# Calculate land cover class shares
+def calculate_area(feature, classCodes, maskedLandCover):
+    total_area = ee.Number(0)
+    
+    def calculate_class_area(class_code, total):
+        class_area = maskedLandCover.eq(ee.Number(class_code)) \
+            .multiply(ee.Image.pixelArea()) \
+            .reduceRegion(
+                reducer=ee.Reducer.sum(),
+                geometry=feature.geometry(),
+                scale=30,
+                maxPixels=1e9
+            ).get('remapped')
+
+        area_value = ee.Number(class_area).divide(1e6)  # Converting the area to km^2
+        return ee.Number(total).add(area_value)
+
+    total_area = ee.List(classCodes).iterate(calculate_class_area, total_area)
+    return feature.set('cover_area_2020', total_area)
+
+# Calculate built area shares
+def calculate_built_area(feature, builtImage):
+    built_area = builtImage.reduceRegion(
+        reducer=ee.Reducer.sum(),
+        geometry=feature.geometry(),
+        scale=10,
+        maxPixels=1e9
+    ).get('built_characteristics')
+
+    built_area = ee.Number(built_area).max(0)
+    return feature.set('built_area_2018', built_area)
+
+#  Calculating road length for each feature (polygon)
+def calculate_road_length(polygon, roads):
+    # Finding all roads that intersect the polygon
+    intersecting_roads = roads.filterBounds(polygon.geometry())
+
+    #  clipping road geometry and calculating its length within the polygon
+    def clip_and_calculate_length(road):
+        road_geom = road.geometry()
+        polygon_geom = polygon.geometry()
+        clipped = road_geom.intersection(polygon_geom, ee.ErrorMargin(1))
+        return ee.Feature(clipped).set('length', clipped.length())
+
+    # Mapping the clipping and length calculation over the intersecting roads
+    clipped_roads = intersecting_roads.map(clip_and_calculate_length)
+
+    # Summing the total road length in the polygon
+    road_length_sum = clipped_roads.reduceColumns(
+        reducer=ee.Reducer.sum(),
+        selectors=['length']
+    ).get('sum')
+
+    # Counting the number of intersecting roads
+    intersecting_roads_count = intersecting_roads.size()
+
+    # ting total road length (in km) and road count as properties on the polygon
+    return polygon.set({
+        'total_road_length_km': ee.Number(road_length_sum).divide(1000),
+        'intersecting_roads_count': intersecting_roads_count
+    })
+
+def calculate_forest_loss(feature, gfc2017):
+    # Selecting the forest loss band and calculate loss area
+    loss_image = gfc2017.select(['loss'])
+    loss_area_image = loss_image.multiply(ee.Image.pixelArea())
+    loss_year = gfc2017.select(['lossyear'])
+
+    # Calculating forest loss area by year within the feature geometry
+    loss_by_year = loss_area_image.addBands(loss_year).reduceRegion(
+        reducer=ee.Reducer.sum().group(groupField=1),
+        geometry=feature.geometry(),
+        scale=30,
+        maxPixels=1e9
+    )
+ 
+    return feature.set(loss_by_year)
+
+#  Calculating the mean elevation and slope
+def calculate_elevation_and_slope(feature, elevation, slope):
+    elevation_mean = elevation.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=feature.geometry(),
+        scale=30,
+        maxPixels=1e9
+    ).get('elevation')
+
+    slope_mean = slope.reduceRegion(
+        reducer=ee.Reducer.mean(),
+        geometry=feature.geometry(),
+        scale=30,
+        maxPixels=1e9
+    ).get('slope')
+
+    return feature.set({
+        'mean_elevation': elevation_mean,
+        'mean_slope': slope_mean
+    })
+
+# Monthly NDVI
+def mask_s2clouds(image):
+    qa = image.select('QA60')
+    cloud_bit_mask = 1 << 10
+    cirrus_bit_mask = 1 << 11
+    mask = qa.bitwiseAnd(cloud_bit_mask).eq(0).And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
+    return image.updateMask(mask).divide(10000)
+
+def process_month(month, chunks, S2):
+    
+    monthly_results = []
+
+    for chunk_index, chunk in enumerate(chunks):
+        print(f"Processing chunk {chunk_index + 1}/{len(chunks)} for month {month}...")
+
+        # Converting the current GeoDataFrame chunk to GeoJSON format
+        gdf_json_chunk = chunk.__geo_interface__
+
+        # Converting the GeoJSON chunk to an Earth Engine FeatureCollection
+        fc_chunk = geemap.geojson_to_ee(gdf_json_chunk)
+
+        # Filtering Sentinel-2 images by the specified month and calculate NDVI
+        monthly_s2 = (S2
+                      .filter(ee.Filter.calendarRange(month, month, 'month'))
+                      .map(mask_s2clouds)
+                      .map(lambda image: image.addBands(image.normalizedDifference(['B8', 'B4']).rename('NDVI'))))
+
+        # Reducing the collection to a single NDVI image for the month
+        monthly_ndvi = monthly_s2.select('NDVI').mean().rename('NDVI')
+
+        # Calculating the mean NDVI for each feature (polygon) in the chunk
+        mean_ndvi = monthly_ndvi.reduceRegions(
+            collection=fc_chunk,
+            reducer=ee.Reducer.mean(),
+            scale=30
+        )
+
+        # Converting the results to a DataFrame
+        if mean_ndvi:
+            temp_chunk_df = pd.DataFrame([feature['properties'] for feature in mean_ndvi.getInfo()['features']])
+        else:
+            temp_chunk_df = pd.DataFrame()
+
+        temp_chunk_df['month'] = month
+        monthly_results.append(temp_chunk_df)
+    
+    # Concatenate all chunk results for the month
+    return pd.concat(monthly_results, ignore_index=True)
+
+# Shadow Index
+def calculate_shadow_index(image):
+    shadow_index = image.expression(
+        '(10000 - blue) * (10000 - green) * (10000 - red)', {
+            'blue': image.select('B2'),
+            'green': image.select('B3'),
+            'red': image.select('B4')
+        }).pow(1 / 3).divide(10000).rename('shadow_index')
+    return image.addBands(shadow_index)
+
+def get_shadow_index_for_month(feature, S2):
+
+    feature = ee.Feature(feature)
+    
+    target_year = ee.Number(feature.get('planting_date_reported'))
+    month = ee.Number(feature.get('month'))
+    
+    # Filter S2 ImageCollection based on feature properties
+    monthly_s2 = (
+        S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
+          .filter(ee.Filter.calendarRange(month, month, 'month'))
+          .filterBounds(feature.geometry())
+          .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+          .map(mask_s2clouds)
+          .map(calculate_shadow_index)
+    )
+       
+    # Use ee.Algorithms.If to handle empty ImageCollection
+    def compute_shadow_index():
+        # Calculate median shadow index
+        monthly_si = monthly_s2.select('shadow_index').median().rename('shadow_index')
+        
+        # Reduce the shadow index over the feature's geometry
+        shadow_index_value = monthly_si.reduceRegion(
+            reducer=ee.Reducer.median(),
+            geometry=feature.geometry(),
+            scale=10,
+            maxPixels=1e13
+        ).get('shadow_index')
+        
+        return feature.set({'shadow_index': shadow_index_value})
+    
+    # Return feature with shadow index or null
+    return ee.Algorithms.If(
+        monthly_s2.size().eq(0),
+        feature.set({'shadow_index': None}),
+        compute_shadow_index()
+    )
+
+# NDVI
+def get_ndvi_for_month(feature, S2):
+
+    feature = ee.Feature(feature)
+    
+    target_year = ee.Number(feature.get('planting_date_reported'))
+    month = ee.Number(feature.get('month'))
+    
+    # Filter S2 ImageCollection based on feature properties
+    monthly_s2 = (
+        S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
+          .filter(ee.Filter.calendarRange(month, month, 'month'))
+          .filterBounds(feature.geometry())
+          .map(mask_s2clouds)
+          .map(lambda img: img.normalizedDifference(['B8', 'B4']).rename('ndvi'))
+    )
+       
+    # Use ee.Algorithms.If to handle empty ImageCollection
+    def compute_ndvi():
+        # Calculate mean ndvi
+        monthly_si = monthly_s2.select('ndvi').mean().rename('ndvi')
+        
+        # Reduce the shadow index over the feature's geometry
+        ndvi_value = monthly_si.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=feature.geometry(),
+            scale=10,
+            maxPixels=1e13
+        ).get('ndvi')
+        
+        return feature.set({'ndvi': ndvi_value})
+    
+    # Return feature with shadow index or null
+    return ee.Algorithms.If(
+        monthly_s2.size().eq(0),
+        feature.set({'ndvi': None}),
+        compute_ndvi()
+    )
+
+
+##########################################
 ### weather_variables_extraction.ipynb ###
-####################################
+##########################################
 # Extracting Year of interest from our polygon "Planting date feature"
 def extract_year(date_str):
     if pd.isna(date_str):
@@ -268,8 +512,13 @@ def extract_year(date_str):
         return int(date_str)
     
     return np.nan
-##################################################
+
+
+#####################################
 ### biomass_data_extraction.ipynb ###
+#####################################
+
+
 # extracting raster values without transforming CRS inside
 def extract_raster_values(raster_path, transformed_centroids):
     with rasterio.open(raster_path) as src:
