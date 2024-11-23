@@ -227,7 +227,7 @@ def parse_kml(content):
             else:
                 geometries.append(Point(c_points))
 
-    # Check for Points
+    # Checking for Points
     for point in soup.find_all('Point'):
         if point.parent.name != 'MultiGeometry':
             if point.find('coordinates').string == None:
@@ -400,7 +400,7 @@ def process_month(month, chunks, S2):
         temp_chunk_df['month'] = month
         monthly_results.append(temp_chunk_df)
     
-    # Concatenate all chunk results for the month
+    # Concatenating all chunk results for the month
     return pd.concat(monthly_results, ignore_index=True)
 
 # Shadow Index
@@ -420,7 +420,7 @@ def get_shadow_index_for_month(feature, S2):
     target_year = ee.Number(feature.get('planting_date_reported'))
     month = ee.Number(feature.get('month'))
     
-    # Filter S2 ImageCollection based on feature properties
+    # Filtering S2 ImageCollection based on feature properties
     monthly_s2 = (
         S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
           .filter(ee.Filter.calendarRange(month, month, 'month'))
@@ -430,12 +430,12 @@ def get_shadow_index_for_month(feature, S2):
           .map(calculate_shadow_index)
     )
        
-    # Use ee.Algorithms.If to handle empty ImageCollection
+    # Using ee.Algorithms.If to handle empty ImageCollection
     def compute_shadow_index():
-        # Calculate median shadow index
+        # Calculating the median shadow index
         monthly_si = monthly_s2.select('shadow_index').median().rename('shadow_index')
         
-        # Reduce the shadow index over the feature's geometry
+        # Reducing the shadow index over the feature's geometry
         shadow_index_value = monthly_si.reduceRegion(
             reducer=ee.Reducer.median(),
             geometry=feature.geometry(),
@@ -445,7 +445,7 @@ def get_shadow_index_for_month(feature, S2):
         
         return feature.set({'shadow_index': shadow_index_value})
     
-    # Return feature with shadow index or null
+    # Returning feature with shadow index or null
     return ee.Algorithms.If(
         monthly_s2.size().eq(0),
         feature.set({'shadow_index': None}),
@@ -460,7 +460,7 @@ def get_ndvi_for_month(feature, S2):
     target_year = ee.Number(feature.get('planting_date_reported'))
     month = ee.Number(feature.get('month'))
     
-    # Filter S2 ImageCollection based on feature properties
+    # Filtering S2 ImageCollection based on feature properties
     monthly_s2 = (
         S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
           .filter(ee.Filter.calendarRange(month, month, 'month'))
@@ -469,12 +469,12 @@ def get_ndvi_for_month(feature, S2):
           .map(lambda img: img.normalizedDifference(['B8', 'B4']).rename('ndvi'))
     )
        
-    # Use ee.Algorithms.If to handle empty ImageCollection
+    # Using ee.Algorithms.If to handle empty ImageCollection
     def compute_ndvi():
-        # Calculate mean ndvi
+        # Calculating mean ndvi
         monthly_si = monthly_s2.select('ndvi').mean().rename('ndvi')
         
-        # Reduce the shadow index over the feature's geometry
+        # Reducing the NDVI over the feature's geometry
         ndvi_value = monthly_si.reduceRegion(
             reducer=ee.Reducer.mean(),
             geometry=feature.geometry(),
@@ -484,7 +484,7 @@ def get_ndvi_for_month(feature, S2):
         
         return feature.set({'ndvi': ndvi_value})
     
-    # Return feature with shadow index or null
+    # Returning feature with NDVI or null
     return ee.Algorithms.If(
         monthly_s2.size().eq(0),
         feature.set({'ndvi': None}),
