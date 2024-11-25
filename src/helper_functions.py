@@ -561,3 +561,12 @@ def process_in_chunks(gdf, chunk_size, raster_crs, raster_dir, period):
         results_df = pd.concat([results_df, chunk])
     
     return results_df.to_crs(gdf.crs)
+#####################################
+### nested_polygons_filtering.ipynb ###
+#####################################
+def clean_data(value):
+    if isinstance(value, dict):
+        return str(value)
+    if isinstance(value, list):
+        return str(value)
+    return value if not pd.isna(value) else None
