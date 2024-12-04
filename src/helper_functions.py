@@ -412,9 +412,56 @@ def calculate_shadow_index(image):
             'red': image.select('B4')
         }).pow(1 / 3).divide(10000).rename('shadow_index')
     return image.addBands(shadow_index)
+# SAVI
+def calculate_savi(image):
+    savi = image.expression(
+        '(NIR - RED) / (NIR + RED + L) * (1 + L)', {
+            'NIR': image.select('B8'),  
+            'RED': image.select('B4'),  
+            'L': 0.5  
+        }).rename('SAVI')
+    return image.addBands(savi)
 
-def get_shadow_index_for_month(feature, S2):
 
+# def get_shadow_index_for_month(feature, S2):
+
+#     feature = ee.Feature(feature)
+    
+#     target_year = ee.Number(feature.get('planting_date_reported'))
+#     month = ee.Number(feature.get('month'))
+    
+#     # Filtering S2 ImageCollection based on feature properties
+#     monthly_s2 = (
+#         S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
+#           .filter(ee.Filter.calendarRange(month, month, 'month'))
+#           .filterBounds(feature.geometry())
+#           .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+#           .map(mask_s2clouds)
+#           .map(calculate_shadow_index)
+#     )
+       
+#     # Using ee.Algorithms.If to handle empty ImageCollection
+#     def compute_shadow_index():
+#         # Calculating the median shadow index
+#         monthly_si = monthly_s2.select('shadow_index').median().rename('shadow_index')
+        
+#         # Reducing the shadow index over the feature's geometry
+#         shadow_index_value = monthly_si.reduceRegion(
+#             reducer=ee.Reducer.median(),
+#             geometry=feature.geometry(),
+#             scale=10,
+#             maxPixels=1e13
+#         ).get('shadow_index')
+        
+#         return feature.set({'shadow_index': shadow_index_value})
+    
+#     # Returning feature with shadow index or null
+#     return ee.Algorithms.If(
+#         monthly_s2.size().eq(0),
+#         feature.set({'shadow_index': None}),
+#         compute_shadow_index()
+#     )
+def get_savi_for_month(feature, S2):
     feature = ee.Feature(feature)
     
     target_year = ee.Number(feature.get('planting_date_reported'))
@@ -427,29 +474,28 @@ def get_shadow_index_for_month(feature, S2):
           .filterBounds(feature.geometry())
           .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
           .map(mask_s2clouds)
-          .map(calculate_shadow_index)
+          .map(calculate_savi)  
     )
        
-    # Using ee.Algorithms.If to handle empty ImageCollection
-    def compute_shadow_index():
-        # Calculating the median shadow index
-        monthly_si = monthly_s2.select('shadow_index').median().rename('shadow_index')
+   
+    def compute_savi():
         
-        # Reducing the shadow index over the feature's geometry
-        shadow_index_value = monthly_si.reduceRegion(
+        monthly_savi = monthly_s2.select('SAVI').median().rename('SAVI')
+       
+        savi_value = monthly_savi.reduceRegion(
             reducer=ee.Reducer.median(),
             geometry=feature.geometry(),
             scale=10,
             maxPixels=1e13
-        ).get('shadow_index')
+        ).get('SAVI')
         
-        return feature.set({'shadow_index': shadow_index_value})
+        return feature.set({'SAVI': savi_value})
     
-    # Returning feature with shadow index or null
+  
     return ee.Algorithms.If(
         monthly_s2.size().eq(0),
-        feature.set({'shadow_index': None}),
-        compute_shadow_index()
+        feature.set({'SAVI': None}),
+        compute_savi()
     )
 
 # NDVI
@@ -489,6 +535,41 @@ def get_ndvi_for_month(feature, S2):
         monthly_s2.size().eq(0),
         feature.set({'ndvi': None}),
         compute_ndvi()
+    )
+# NDRE
+def get_ndre_for_month(feature, S2):
+    feature = ee.Feature(feature)
+    
+    target_year = ee.Number(feature.get('planting_date_reported'))
+    month = ee.Number(feature.get('month'))
+    
+   
+    monthly_s2 = (
+        S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
+          .filter(ee.Filter.calendarRange(month, month, 'month'))
+          .filterBounds(feature.geometry())
+          .map(mask_s2clouds)
+          .map(lambda img: img.normalizedDifference(['B8', 'B5']).rename('ndre'))  # NDRE calculation
+    )
+       
+  
+    def compute_ndre():
+       
+        monthly_ndre = monthly_s2.select('ndre').mean().rename('ndre')
+       
+        ndre_value = monthly_ndre.reduceRegion(
+            reducer=ee.Reducer.mean(),
+            geometry=feature.geometry(),
+            scale=10,
+            maxPixels=1e13
+        ).get('ndre')
+        
+        return feature.set({'ndre': ndre_value})
+   
+    return ee.Algorithms.If(
+        monthly_s2.size().eq(0),
+        feature.set({'ndre': None}),
+        compute_ndre()
     )
 
 
