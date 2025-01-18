@@ -6,7 +6,7 @@ import rasterio
 import os
 import requests
 import ast
-from shapely.geometry import shape, Polygon, MultiPolygon, mapping, MultiLineString, MultiPoint, LineString, Point
+from shapely.geometry import shape,Polygon, MultiPolygon, GeometryCollection, mapping, MultiLineString, MultiPoint, LineString, Point
 from shapely.ops import transform
 import pyproj
 import numpy as np
@@ -354,7 +354,17 @@ def calculate_elevation_and_slope(feature, elevation, slope):
         'mean_slope': slope_mean
     })
 
-# Monthly NDVI
+
+
+# Defining the function to extract Polygon and MultiPolygon geometries from a GeometryCollection
+def extract_polygons(geometry):
+    if isinstance(geometry, GeometryCollection):
+        polygons = [geom for geom in geometry.geoms if isinstance(geom, (Polygon, MultiPolygon))]
+        if polygons:
+            return polygons[0]  
+    return geometry
+
+
 def mask_s2clouds(image):
     qa = image.select('QA60')
     cloud_bit_mask = 1 << 10
@@ -362,8 +372,8 @@ def mask_s2clouds(image):
     mask = qa.bitwiseAnd(cloud_bit_mask).eq(0).And(qa.bitwiseAnd(cirrus_bit_mask).eq(0))
     return image.updateMask(mask).divide(10000)
 
+# Define the process_month function
 def process_month(month, chunks, S2):
-    
     monthly_results = []
 
     for chunk_index, chunk in enumerate(chunks):
@@ -372,8 +382,12 @@ def process_month(month, chunks, S2):
         # Converting the current GeoDataFrame chunk to GeoJSON format
         gdf_json_chunk = chunk.__geo_interface__
 
-        # Converting the GeoJSON chunk to an Earth Engine FeatureCollection
-        fc_chunk = geemap.geojson_to_ee(gdf_json_chunk)
+        try:
+            # Converting the GeoJSON chunk to an Earth Engine FeatureCollection
+            fc_chunk = geemap.geojson_to_ee(gdf_json_chunk)
+        except Exception as e:
+            print(f"Error converting chunk {chunk_index + 1} to Earth Engine FeatureCollection: {e}")
+            continue
 
         # Filtering Sentinel-2 images by the specified month and calculate NDVI
         monthly_s2 = (S2
@@ -384,22 +398,34 @@ def process_month(month, chunks, S2):
         # Reducing the collection to a single NDVI image for the month
         monthly_ndvi = monthly_s2.select('NDVI').mean().rename('NDVI')
 
-        # Calculating the mean NDVI for each feature (polygon) in the chunk
-        mean_ndvi = monthly_ndvi.reduceRegions(
-            collection=fc_chunk,
-            reducer=ee.Reducer.mean(),
-            scale=30
-        )
+        retry_count = 0
+        max_retries = 5
+        backoff_time = 2
 
-        # Converting the results to a DataFrame
-        if mean_ndvi:
-            temp_chunk_df = pd.DataFrame([feature['properties'] for feature in mean_ndvi.getInfo()['features']])
-        else:
-            temp_chunk_df = pd.DataFrame()
+        while retry_count < max_retries:
+            try:
+                # Calculating the mean NDVI for each feature (polygon) in the chunk
+                mean_ndvi = monthly_ndvi.reduceRegions(
+                    collection=fc_chunk,
+                    reducer=ee.Reducer.mean(),
+                    scale=30
+                )
 
-        temp_chunk_df['month'] = month
-        monthly_results.append(temp_chunk_df)
-    
+                # Converting the results to a DataFrame
+                if mean_ndvi:
+                    temp_chunk_df = pd.DataFrame([feature['properties'] for feature in mean_ndvi.getInfo()['features']])
+                else:
+                    temp_chunk_df = pd.DataFrame()
+
+                temp_chunk_df['month'] = month
+                monthly_results.append(temp_chunk_df)
+                break
+            except Exception as e:
+                print(f"Error processing chunk {chunk_index + 1}: {e}")
+                retry_count += 1
+                time.sleep(backoff_time)
+                backoff_time *= 2  # Exponential backoff
+
     # Concatenating all chunk results for the month
     return pd.concat(monthly_results, ignore_index=True)
 
@@ -419,7 +445,7 @@ def calculate_savi(image):
             'NIR': image.select('B8'),  
             'RED': image.select('B4'),  
             'L': 0.5  
-        }).rename('SAVI')
+        }).rename('savi_index')
     return image.addBands(savi)
 
 
@@ -480,21 +506,21 @@ def get_savi_for_month(feature, S2):
    
     def compute_savi():
         
-        monthly_savi = monthly_s2.select('SAVI').median().rename('SAVI')
+        monthly_savi = monthly_s2.select('savi_index').median().rename('savi_index')
        
         savi_value = monthly_savi.reduceRegion(
             reducer=ee.Reducer.median(),
             geometry=feature.geometry(),
             scale=10,
             maxPixels=1e13
-        ).get('SAVI')
+        ).get('savi_index')
         
-        return feature.set({'SAVI': savi_value})
+        return feature.set({'savi_index': savi_value})
     
   
     return ee.Algorithms.If(
         monthly_s2.size().eq(0),
-        feature.set({'SAVI': None}),
+        feature.set({'savi_index': None}),
         compute_savi()
     )
 
