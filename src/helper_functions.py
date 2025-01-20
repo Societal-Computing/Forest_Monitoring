@@ -20,6 +20,8 @@ from random import uniform
 import zipfile
 import ee
 import geemap
+import os
+import gc
 
 
 ##################################################
@@ -677,3 +679,89 @@ def clean_data(value):
     if isinstance(value, list):
         return str(value)
     return value if not pd.isna(value) else None
+############
+### Weathe_data_extraction.ipynb ###
+
+
+def process_climate_variable(gdf, tif_folder, output_folder, combined_output_path, variable_name):
+    tif_files = [f for f in os.listdir(tif_folder) if f.endswith(".tif")]
+    if len(tif_files) == 0:
+        raise FileNotFoundError(f"No .tif files found in the directory for {variable_name}.")
+
+    tif_files_by_year = {}
+    for tif_file in tif_files:
+        year_month = tif_file.split("_")[-1].split(".")[0]  
+        year, month = int(year_month.split("-")[0]), int(year_month.split("-")[1])
+        if year not in tif_files_by_year:
+            tif_files_by_year[year] = {}
+        tif_files_by_year[year][month] = tif_file
+
+    chunk_size = 200  
+
+    for i in range(0, len(gdf), chunk_size):
+        gdf_chunk = gdf.iloc[i:i + chunk_size].copy()
+        variable_by_years_after_planting = {}
+
+        for idx, polygon in gdf_chunk.iterrows():
+            planting_year = polygon['planting_year']
+            if pd.isna(planting_year):
+                continue
+
+            variable_by_years_after_planting[idx] = {
+                'planting_year': {'sum': 0, 'count': 0},
+                'year_1': {'sum': 0, 'count': 0},
+                'year_2': {'sum': 0, 'count': 0},
+                'year_5': {'sum': 0, 'count': 0}
+            }
+
+            centroid = polygon['geometry'].centroid
+            centroid_point = [(centroid.x, centroid.y)]
+
+            for year_offset in [0, 1, 2, 5]:
+                current_year = planting_year + year_offset
+                if current_year in tif_files_by_year:
+                    for month in range(1, 13):
+                        if month in tif_files_by_year[current_year]:
+                            tif_file = tif_files_by_year[current_year][month]
+                            tif_path = os.path.join(tif_folder, tif_file)
+
+                            try:
+                                with rasterio.open(tif_path) as src:
+                                    for val in src.sample(centroid_point):
+                                        valid_data = val[0]
+                                        if not np.isnan(valid_data):
+                                            key = f'year_{year_offset}' if year_offset > 0 else 'planting_year'
+                                            variable_by_years_after_planting[idx][key]['sum'] += valid_data
+                                            variable_by_years_after_planting[idx][key]['count'] += 1
+                            except Exception as e:
+                                print(f"Error processing {tif_file}: {e}")
+
+        for idx, data in variable_by_years_after_planting.items():
+            for key in data:
+                sum_value = data[key]['sum']
+                count_value = data[key]['count']
+                avg_value = sum_value / count_value if count_value > 0 else np.nan
+                gdf_chunk.at[idx, f"avg_{variable_name}_{key}"] = avg_value
+
+        output_geojson_path = os.path.join(output_folder, f"{variable_name}_chunk_{i}.geojson")
+        gdf_chunk.to_file(output_geojson_path, driver="GeoJSON")
+
+        del gdf_chunk, variable_by_years_after_planting
+        gc.collect()
+
+        print(f"Processed and saved chunk {i} for {variable_name} to {output_geojson_path}")
+
+    combined_gdf = gpd.GeoDataFrame()
+
+    for i in range(0, len(gdf), chunk_size):
+        chunk_path = os.path.join(output_folder, f"{variable_name}_chunk_{i}.geojson")
+        chunk_gdf = gpd.read_file(chunk_path)
+        combined_gdf = pd.concat([combined_gdf, chunk_gdf], ignore_index=True)
+
+    combined_gdf.to_file(combined_output_path, driver="GeoJSON")
+    print(f"Combined all chunks into {combined_output_path} for {variable_name}")
+
+    for i in range(0, len(gdf), chunk_size):
+        chunk_path = os.path.join(output_folder, f"{variable_name}_chunk_{i}.geojson")
+        os.remove(chunk_path)
+        print(f"Deleted chunk file: {chunk_path} for {variable_name}")
