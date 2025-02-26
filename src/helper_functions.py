@@ -765,3 +765,40 @@ def process_climate_variable(gdf, tif_folder, output_folder, combined_output_pat
         chunk_path = os.path.join(output_folder, f"{variable_name}_chunk_{i}.geojson")
         os.remove(chunk_path)
         print(f"Deleted chunk file: {chunk_path} for {variable_name}")
+#####################################
+###checking_polygons_axact_admin_area.ipynb 
+#####################################
+def geometries_almost_equal(geom1, geom2, tolerance=0.001):
+    """
+    Compare two geometries for near-equality within a tolerance.
+    """
+    return geom1.equals(geom2) or geom1.almost_equals(geom2, tolerance)
+
+def process_chunk_gadm(chunk, gadm_data, layer_name):
+    """
+    Process a chunk of reforestation data to find exact matches with GADM geometries.
+    """
+    sindex = gadm_data.sindex
+    exact_matches = []
+    potential_matches_count = 0
+
+    for idx, row in chunk.iterrows():
+        possible_matches_index = list(sindex.intersection(row.geometry.bounds))
+        if not possible_matches_index:
+            continue
+
+        potential_matches_count += 1
+        possible_matches = gadm_data.iloc[possible_matches_index]
+
+        for _, admin_row in possible_matches.iterrows():
+            if geometries_almost_equal(row.geometry, admin_row.geometry):
+                exact_matches.append(row)
+                break
+
+    print(f"Potential matches found in chunk for layer {layer_name}: {potential_matches_count}")
+    print(f"Exact matches found in chunk for layer {layer_name}: {len(exact_matches)}")
+
+    if exact_matches:
+        return gpd.GeoDataFrame(exact_matches, crs=chunk.crs)
+    else:
+        return gpd.GeoDataFrame(columns=chunk.columns, crs=chunk.crs)
