@@ -5,6 +5,8 @@ import json
 import rasterio
 import os
 import requests
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3.util.retry import Retry
 import ast
 from shapely.geometry import shape,Polygon, MultiPolygon, GeometryCollection, mapping, MultiLineString, MultiPoint, LineString, Point
 from shapely.ops import transform
@@ -802,3 +804,32 @@ def process_chunk_gadm(chunk, gadm_data, layer_name):
         return gpd.GeoDataFrame(exact_matches, crs=chunk.crs)
     else:
         return gpd.GeoDataFrame(columns=chunk.columns, crs=chunk.crs)
+#####################################
+###restor.ipynb
+#####################################
+# Extracting more data from the Restor website using the ids
+def fetch_data(id):
+    url = f"https://restor2-prod-1-api.restor.eco/sites/3/{id}"
+    session = requests.Session()
+    retry_strategy = Retry(
+        total=5,  
+        backoff_factor=1, 
+        status_forcelist=[429, 500, 502, 503, 504], 
+        allowed_methods=["HEAD", "GET", "OPTIONS"]  
+    )
+    adapter = HTTPAdapter(max_retries=retry_strategy)
+    session.mount("https://", adapter)
+    
+    try:
+        response = session.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=10)  # Timeout set to 10 seconds
+        response.raise_for_status()
+
+        if response.headers.get('content-type') == 'application/json':
+            return response.json()
+        else:
+            print(f"API did not return JSON data for id {id}")
+            return None
+
+    except Exception as e:
+        print(f"Error fetching data for id {id}: {e}")
+        return None
