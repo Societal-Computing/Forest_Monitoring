@@ -833,3 +833,33 @@ def fetch_data(id):
     except Exception as e:
         print(f"Error fetching data for id {id}: {e}")
         return None
+
+#####################################
+###Reforestaction.ipynb
+#####################################
+
+def fetch_page_data(page_num):
+    BASE_URL = "https://backoffice.reforestaction.com/api/projects"
+    HEADERS = {'User-Agent': 'Mozilla/5.0'}
+    
+    params = {
+        'fields[0]': 'externalId',
+        'fields[1]': 'commercialFollowUp',
+        'fields[2]': 'centroidLongitude',
+        'fields[3]': 'centroidLatitude',
+        'locale': 'en',
+        'filters[commercialFollowUp][$notNull]': 'true',
+        'filters[centroidLatitude][$notNull]': 'true',
+        'filters[centroidLongitude][$notNull]': 'true',
+        'sort[0]': 'createdDate:desc',
+        'pagination[page]': page_num,
+        'pagination[pageSize]': '100'
+    }
+    
+    response = requests.get(BASE_URL, params=params, headers=HEADERS)
+    response.raise_for_status()
+    
+    if response.headers.get('Content-Type', '').startswith('application/json'):
+        return response.json()
+    else:
+        raise ValueError("Unexpected response format")
