@@ -285,7 +285,7 @@ def calculate_built_area(feature, builtImage):
         reducer=ee.Reducer.sum(),
         geometry=feature.geometry(),
         scale=10,
-        maxPixels=1e9
+        maxPixels=1e14
     ).get('built_characteristics')
 
     built_area = ee.Number(built_area).max(0)
@@ -497,75 +497,91 @@ def get_savi_for_month(feature, S2):
     target_year = ee.Number(feature.get('planting_date_reported'))
     month = ee.Number(feature.get('month'))
     
-    # Filtering S2 ImageCollection based on feature properties
-    monthly_s2 = (
-        S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
-          .filter(ee.Filter.calendarRange(month, month, 'month'))
-          .filterBounds(feature.geometry())
-          .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
-          .map(mask_s2clouds)
-          .map(calculate_savi)  
-    )
-       
-   
-    def compute_savi():
+    # Define relative years
+    years = {
+        'savi_1yr_before': target_year.subtract(1),
+        'savi_atplanting': target_year,
+        'savi_1yr_after': target_year.add(1),
+        'savi_2yr_after': target_year.add(2),
+        'savi_5yr_after': target_year.add(5)
+    }
+
+    def compute_savi(year_label, year):
+        # Filter S2 ImageCollection based on year and month
+        monthly_s2 = (
+            S2.filter(ee.Filter.calendarRange(year, year, 'year'))
+              .filter(ee.Filter.calendarRange(month, month, 'month'))
+              .filterBounds(feature.geometry())
+              .filter(ee.Filter.lt('CLOUDY_PIXEL_PERCENTAGE', 20))
+              .map(mask_s2clouds)
+              .map(calculate_savi)  # Apply SAVI calculation
+        )
         
-        monthly_savi = monthly_s2.select('savi_index').median().rename('savi_index')
-       
-        savi_value = monthly_savi.reduceRegion(
-            reducer=ee.Reducer.median(),
-            geometry=feature.geometry(),
-            scale=10,
-            maxPixels=1e13
-        ).get('savi_index')
-        
-        return feature.set({'savi_index': savi_value})
-    
-  
-    return ee.Algorithms.If(
-        monthly_s2.size().eq(0),
-        feature.set({'savi_index': None}),
-        compute_savi()
-    )
+        # Compute median SAVI if images are available, otherwise return None
+        savi_value = ee.Algorithms.If(
+            monthly_s2.size().gt(0),
+            monthly_s2.select('savi_index').median().reduceRegion(
+                reducer=ee.Reducer.median(),
+                geometry=feature.geometry(),
+                scale=10,
+                maxPixels=1e13
+            ).get('savi_index'),
+            None
+        )
+
+        return feature.set(year_label, savi_value)
+
+    # Compute SAVI for each year
+    for year_label, year in years.items():
+        feature = compute_savi(year_label, year)
+
+    return feature
 
 # NDVI
 def get_ndvi_for_month(feature, S2):
-
     feature = ee.Feature(feature)
     
     target_year = ee.Number(feature.get('planting_date_reported'))
     month = ee.Number(feature.get('month'))
     
-    # Filtering S2 ImageCollection based on feature properties
-    monthly_s2 = (
-        S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
-          .filter(ee.Filter.calendarRange(month, month, 'month'))
-          .filterBounds(feature.geometry())
-          .map(mask_s2clouds)
-          .map(lambda img: img.normalizedDifference(['B8', 'B4']).rename('ndvi'))
-    )
-       
-    # Using ee.Algorithms.If to handle empty ImageCollection
-    def compute_ndvi():
-        # Calculating mean ndvi
-        monthly_si = monthly_s2.select('ndvi').mean().rename('ndvi')
+    # Define relative years
+    years = {
+        'ndvi_1yr_before': target_year.subtract(1),
+        'ndvi_atplanting': target_year,
+        'ndvi_1yr_after': target_year.add(1),
+        'ndvi_2yr_after': target_year.add(2),
+        'ndvi_5yr_after': target_year.add(5)
+    }
+
+    def compute_ndvi(year_label, year):
+        # Filter S2 ImageCollection based on year and month
+        monthly_s2 = (
+            S2.filter(ee.Filter.calendarRange(year, year, 'year'))
+              .filter(ee.Filter.calendarRange(month, month, 'month'))
+              .filterBounds(feature.geometry())
+              .map(mask_s2clouds)
+              .map(lambda img: img.normalizedDifference(['B8', 'B4']).rename('ndvi'))
+        )
         
-        # Reducing the NDVI over the feature's geometry
-        ndvi_value = monthly_si.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=feature.geometry(),
-            scale=10,
-            maxPixels=1e13
-        ).get('ndvi')
-        
-        return feature.set({'ndvi': ndvi_value})
-    
-    # Returning feature with NDVI or null
-    return ee.Algorithms.If(
-        monthly_s2.size().eq(0),
-        feature.set({'ndvi': None}),
-        compute_ndvi()
-    )
+        # Compute mean NDVI if images are available, otherwise return None
+        ndvi_value = ee.Algorithms.If(
+            monthly_s2.size().gt(0),
+            monthly_s2.select('ndvi').mean().reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=feature.geometry(),
+                scale=10,
+                maxPixels=1e13
+            ).get('ndvi'),
+            None
+        )
+
+        return feature.set(year_label, ndvi_value)
+
+    # Compute NDVI for each year
+    for year_label, year in years.items():
+        feature = compute_ndvi(year_label, year)
+
+    return feature
 # NDRE
 def get_ndre_for_month(feature, S2):
     feature = ee.Feature(feature)
@@ -573,35 +589,44 @@ def get_ndre_for_month(feature, S2):
     target_year = ee.Number(feature.get('planting_date_reported'))
     month = ee.Number(feature.get('month'))
     
-   
-    monthly_s2 = (
-        S2.filter(ee.Filter.calendarRange(target_year, target_year, 'year'))
-          .filter(ee.Filter.calendarRange(month, month, 'month'))
-          .filterBounds(feature.geometry())
-          .map(mask_s2clouds)
-          .map(lambda img: img.normalizedDifference(['B8', 'B5']).rename('ndre'))  # NDRE calculation
-    )
-       
-  
-    def compute_ndre():
-       
-        monthly_ndre = monthly_s2.select('ndre').mean().rename('ndre')
-       
-        ndre_value = monthly_ndre.reduceRegion(
-            reducer=ee.Reducer.mean(),
-            geometry=feature.geometry(),
-            scale=10,
-            maxPixels=1e13
-        ).get('ndre')
-        
-        return feature.set({'ndre': ndre_value})
-   
-    return ee.Algorithms.If(
-        monthly_s2.size().eq(0),
-        feature.set({'ndre': None}),
-        compute_ndre()
-    )
+    # Define relative years
+    years = {
+        'ndre_1yr_before': target_year.subtract(1),
+        'ndre_atplanting': target_year,
+        'ndre_1yr_after': target_year.add(1),
+        'ndre_2yr_after': target_year.add(2),
+        'ndre_5yr_after': target_year.add(5)
+    }
 
+    def compute_ndre(year_label, year):
+        # Filter S2 ImageCollection based on year and month
+        monthly_s2 = (
+            S2.filter(ee.Filter.calendarRange(year, year, 'year'))
+              .filter(ee.Filter.calendarRange(month, month, 'month'))
+              .filterBounds(feature.geometry())
+              .map(mask_s2clouds)
+              .map(lambda img: img.normalizedDifference(['B8', 'B5']).rename('ndre'))  # NDRE calculation
+        )
+        
+        # Compute mean NDRE if images are available, otherwise return None
+        ndre_value = ee.Algorithms.If(
+            monthly_s2.size().gt(0),
+            monthly_s2.select('ndre').mean().reduceRegion(
+                reducer=ee.Reducer.mean(),
+                geometry=feature.geometry(),
+                scale=10,
+                maxPixels=1e13
+            ).get('ndre'),
+            None
+        )
+
+        return feature.set(year_label, ndre_value)
+
+    # Compute NDRE for each year
+    for year_label, year in years.items():
+        feature = compute_ndre(year_label, year)
+
+    return feature
 
 ##########################################
 ### weather_variables_extraction.ipynb ###
