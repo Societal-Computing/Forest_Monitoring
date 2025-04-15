@@ -25,6 +25,8 @@ import ee
 import geemap
 import os
 import gc
+from shapely.prepared import prep
+from pyproj import CRS
 
 
 ##################################################
@@ -551,13 +553,13 @@ def get_ndvi_for_month(feature, S2):
         'ndvi_atplanting': target_year,
         'ndvi_1yr_after': target_year.add(1),
         'ndvi_2yr_after': target_year.add(2),
-        'ndvi_5yr_after': target_year.add(5),
-        'ndvi_7yr_after': target_year.add(7),
-        'ndvi_8yr_after': target_year.add(8)
+        'ndvi_5yr_after': target_year.add(5)
+        # 'ndvi_7yr_after': target_year.add(7),
+        # 'ndvi_8yr_after': target_year.add(8)
     }
 
     def compute_ndvi(year_label, year):
-        # Filter S2 ImageCollection based on year and month
+        # Filtering S2 ImageCollection based on year and month
         monthly_s2 = (
             S2.filter(ee.Filter.calendarRange(year, year, 'year'))
               .filter(ee.Filter.calendarRange(month, month, 'month'))
@@ -566,11 +568,11 @@ def get_ndvi_for_month(feature, S2):
               .map(lambda img: img.normalizedDifference(['B8', 'B4']).rename('ndvi'))
         )
         
-        # Compute mean NDVI if images are available, otherwise return None
+        # Compute median NDVI if images are available, otherwise return None
         ndvi_value = ee.Algorithms.If(
             monthly_s2.size().gt(0),
             monthly_s2.select('ndvi').median().reduceRegion(
-                reducer=ee.Reducer.mean(),
+                reducer=ee.Reducer.median(),
                 geometry=feature.geometry(),
                 scale=10,
                 maxPixels=1e13
@@ -615,7 +617,7 @@ def get_ndre_for_month(feature, S2):
         ndre_value = ee.Algorithms.If(
             monthly_s2.size().gt(0),
             monthly_s2.select('ndre').median().reduceRegion(
-                reducer=ee.Reducer.mean(),
+                reducer=ee.Reducer.median(),
                 geometry=feature.geometry(),
                 scale=10,
                 maxPixels=1e13
@@ -798,40 +800,107 @@ def process_climate_variable(gdf, tif_folder, output_folder, combined_output_pat
 #####################################
 ###checking_polygons_axact_admin_area.ipynb 
 #####################################
-def geometries_almost_equal(geom1, geom2, tolerance=0.001):
-    """
-    Compare two geometries for near-equality within a tolerance.
-    """
-    return geom1.equals(geom2) or geom1.almost_equals(geom2, tolerance)
 
-def process_chunk_gadm(chunk, gadm_data, layer_name):
-    """
-    Process a chunk of reforestation data to find exact matches with GADM geometries.
-    """
-    sindex = gadm_data.sindex
-    exact_matches = []
-    potential_matches_count = 0
+EQUAL_AREA_CRS = "EPSG:6933"  # World Equidistant Cylindrical
+CHUNK_SIZE = 100000
+COVERAGE_THRESHOLD = 0.98  # setting 98% threshold to allow polygons covering 98% of the polygon to be included
+
+def prepare_gadm_layers(gadm_path):
+    """Load and prepare GADM layers with spatial optimizations"""
+    gadm_layers = ['ADM_0', 'ADM_1', 'ADM_2', 'ADM_3', 'ADM_4', 'ADM_5']
+    gadm_data = {}
+
+    for layer in gadm_layers:
+        print(f"Preparing {layer}...")
+        gdf = gpd.read_file(gadm_path, layer=layer).to_crs("EPSG:4326")
+        gdf_eq = gdf.to_crs(EQUAL_AREA_CRS)
+
+        gdf['admin_area'] = gdf_eq.geometry.area
+        gdf['prepared_geom'] = gdf.geometry.apply(prep)
+        gdf.sindex  
+
+        gadm_data[layer] = gdf
+
+    return gadm_data
+
+def process_reforestation(reforest_path, gadm_data):
+    """Main processing function with geometry validation"""
+    reforest_gdf = gpd.read_parquet(reforest_path).to_crs("EPSG:4326")
+    
+    # Calculating reforestation areas
+    reforest_eq = reforest_gdf.to_crs(EQUAL_AREA_CRS)
+    reforest_gdf['reforest_area'] = reforest_eq.geometry.area
+
+    matched_rows = []
+
+    for layer_idx, (layer_name, gadm_layer) in enumerate(gadm_data.items(), 1):
+        print(f"\nProcessing {layer_name} ({layer_idx}/{len(gadm_data)})")
+        
+        chunks = [reforest_gdf[i:i+CHUNK_SIZE] for i in range(0, len(reforest_gdf), CHUNK_SIZE)]
+
+        for chunk_num, chunk in enumerate(chunks, 1):
+            print(f"  Chunk {chunk_num}/{len(chunks)}", end="\r", flush=True)
+
+            # Cleaning the geometries
+            valid_chunk = chunk[chunk.geometry.is_valid & ~chunk.geometry.is_empty].copy()
+
+            # Checking for spatial alignment
+            matches = process_chunk_gadm(valid_chunk, gadm_layer)
+
+            if not matches.empty:
+                matched_rows.append(matches)
+
+    # Merging all matched polygons
+    if matched_rows:
+        final_gdf = gpd.GeoDataFrame(pd.concat(matched_rows, ignore_index=True), crs="EPSG:4326")
+    else:
+        final_gdf = gpd.GeoDataFrame(columns=reforest_gdf.columns, geometry="geometry", crs="EPSG:4326")
+
+    return final_gdf
+
+def process_chunk_gadm(chunk, gadm_layer):
+    """Process chunk ensuring 98-100% spatial coverage"""
+    sindex = gadm_layer.sindex
+    matched_rows = []
 
     for idx, row in chunk.iterrows():
-        possible_matches_index = list(sindex.intersection(row.geometry.bounds))
-        if not possible_matches_index:
+        reforest_geom = row.geometry
+        reforest_area = row.reforest_area
+
+        possible_matches = list(sindex.intersection(reforest_geom.bounds))
+        if not possible_matches:
             continue
 
-        potential_matches_count += 1
-        possible_matches = gadm_data.iloc[possible_matches_index]
+        for admin_idx in possible_matches:
+            admin_row = gadm_layer.iloc[admin_idx]
 
-        for _, admin_row in possible_matches.iterrows():
-            if geometries_almost_equal(row.geometry, admin_row.geometry):
-                exact_matches.append(row)
+            # Computing the intersection
+            int_geom = reforest_geom.intersection(admin_row.geometry)
+
+            if int_geom.is_empty:
+                continue
+
+            # Converting the intersection to GeoDataFrame for proper CRS handling
+            intersection_gdf = gpd.GeoDataFrame(
+                geometry=[int_geom], 
+                crs="EPSG:4326"
+            ).to_crs(EQUAL_AREA_CRS)
+            
+            intersection_area = intersection_gdf.geometry.area.iloc[0]
+            admin_area = admin_row.admin_area
+
+            # Coverage threshold
+            coverage_admin = intersection_area / admin_area
+            coverage_reforest = intersection_area / reforest_area
+            
+            if coverage_admin >= COVERAGE_THRESHOLD and coverage_reforest >= COVERAGE_THRESHOLD:
+                matched_rows.append(row.to_dict())
                 break
 
-    print(f"Potential matches found in chunk for layer {layer_name}: {potential_matches_count}")
-    print(f"Exact matches found in chunk for layer {layer_name}: {len(exact_matches)}")
-
-    if exact_matches:
-        return gpd.GeoDataFrame(exact_matches, crs=chunk.crs)
-    else:
-        return gpd.GeoDataFrame(columns=chunk.columns, crs=chunk.crs)
+    if matched_rows:
+        return gpd.GeoDataFrame(matched_rows, geometry="geometry", crs="EPSG:4326")
+    
+    return gpd.GeoDataFrame(columns=chunk.columns, geometry="geometry", crs="EPSG:4326").iloc[0:0]
 #####################################
 ###restor.ipynb
 #####################################
@@ -918,6 +987,46 @@ def get_nearest_tree_cover(row):
     planting_year = int(row['PlantingYear'])
     nearest_year = min(years, key=lambda x: abs(x - planting_year))
     return row[f'tree_cover_area_{nearest_year}']
+def check_intersection(x):
+
+    if isinstance(x, list):
+        return 0 if len(x) > 0 else 1  # : No intersection -> 1, Intersection -> 0
+    elif isinstance(x, np.ndarray):
+        return 0 if x.size > 0 else 1
+
+    elif isinstance(x, str):
+        return 0 if len(x) > 2 else 1
+
+    else:
+        return 1
+#######################################
+###Quality_Framework_refined.ipynb
+####################################### 
+def extract_planting_date(date_str):
+    if pd.isna(date_str) or date_str in ['{}', '']:
+        return pd.NaT  # Returning NaT for missing values
+
+    date_str = str(date_str).strip()
+
+    if date_str.replace('.', '', 1).isdigit():
+        return datetime(int(float(date_str)), 1, 1)
+
+    date_str = date_str.replace('/', '-')  # Normalizing date formats (e.g., 2015/06/30 → 2015-06-30)
+
+    try:
+        return pd.to_datetime(date_str, errors='coerce', utc=True)
+    except:
+        return pd.NaT
+
+
+### Treecover indicator processing
+def get_nearest_tree_cover(row):
+    if pd.isna(row['PlantingYear']):
+        return np.nan
+    planting_year = int(row['PlantingYear'])
+    nearest_year = min(years, key=lambda x: abs(x - planting_year))
+    return row[f'tree_cover_area_{nearest_year}']
+# intersection check function
 def check_intersection(x):
 
     if isinstance(x, list):
