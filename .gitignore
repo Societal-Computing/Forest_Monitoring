@@ -241,6 +241,7 @@ midsave/project_descriptions/newer_extracted_project_data.csv
 midsave/project_descriptions/newfiltered_dates_data.csv
 *DS_Store
 src/.DS_Store
+archive/.DS_Store
 src/car_buffer_allsaviprocessed_chunks/
 src/car_buffndviallyearsprocessed_chunks/
 src/car_ndreprocessed_chunks/

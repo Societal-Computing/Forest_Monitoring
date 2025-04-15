@@ -5,6 +5,7 @@ import json
 import rasterio
 import os
 import requests
+from datetime import datetime
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import ast
@@ -550,7 +551,9 @@ def get_ndvi_for_month(feature, S2):
         'ndvi_atplanting': target_year,
         'ndvi_1yr_after': target_year.add(1),
         'ndvi_2yr_after': target_year.add(2),
-        'ndvi_5yr_after': target_year.add(5)
+        'ndvi_5yr_after': target_year.add(5),
+        'ndvi_7yr_after': target_year.add(7),
+        'ndvi_8yr_after': target_year.add(8)
     }
 
     def compute_ndvi(year_label, year):
@@ -566,7 +569,7 @@ def get_ndvi_for_month(feature, S2):
         # Compute mean NDVI if images are available, otherwise return None
         ndvi_value = ee.Algorithms.If(
             monthly_s2.size().gt(0),
-            monthly_s2.select('ndvi').mean().reduceRegion(
+            monthly_s2.select('ndvi').median().reduceRegion(
                 reducer=ee.Reducer.mean(),
                 geometry=feature.geometry(),
                 scale=10,
@@ -611,7 +614,7 @@ def get_ndre_for_month(feature, S2):
         # Compute mean NDRE if images are available, otherwise return None
         ndre_value = ee.Algorithms.If(
             monthly_s2.size().gt(0),
-            monthly_s2.select('ndre').mean().reduceRegion(
+            monthly_s2.select('ndre').median().reduceRegion(
                 reducer=ee.Reducer.mean(),
                 geometry=feature.geometry(),
                 scale=10,
@@ -888,3 +891,42 @@ def fetch_page_data(page_num):
         return response.json()
     else:
         raise ValueError("Unexpected response format")
+#####################################
+###Quality_Framework_refined.ipynb
+#####################################
+def extract_planting_date(date_str):
+    if pd.isna(date_str) or date_str in ['{}', '']:
+        return pd.NaT  # Returning NaT for missing values
+
+    date_str = str(date_str).strip()
+
+    if date_str.replace('.', '', 1).isdigit():
+        return datetime(int(float(date_str)), 1, 1)
+
+    date_str = date_str.replace('/', '-')  # Normalizing date formats (e.g., 2015/06/30 → 2015-06-30)
+
+    try:
+        return pd.to_datetime(date_str, errors='coerce', utc=True)
+    except:
+        return pd.NaT
+
+
+years = [2000, 2005, 2010, 2015, 2020]
+def get_nearest_tree_cover(row):
+    if pd.isna(row['PlantingYear']):
+        return np.nan
+    planting_year = int(row['PlantingYear'])
+    nearest_year = min(years, key=lambda x: abs(x - planting_year))
+    return row[f'tree_cover_area_{nearest_year}']
+def check_intersection(x):
+
+    if isinstance(x, list):
+        return 0 if len(x) > 0 else 1  # : No intersection -> 1, Intersection -> 0
+    elif isinstance(x, np.ndarray):
+        return 0 if x.size > 0 else 1
+
+    elif isinstance(x, str):
+        return 0 if len(x) > 2 else 1
+
+    else:
+        return 1
