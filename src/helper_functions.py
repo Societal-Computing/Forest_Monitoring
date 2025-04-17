@@ -9,6 +9,7 @@ from datetime import datetime
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3.util.retry import Retry
 import ast
+import fitz # PyMuPDF
 from shapely.geometry import shape,Polygon, MultiPolygon, GeometryCollection, mapping, MultiLineString, MultiPoint, LineString, Point
 from shapely.ops import transform
 import pyproj
@@ -27,6 +28,14 @@ import os
 import gc
 from shapely.prepared import prep
 from pyproj import CRS
+from transformers import pipeline
+import dateutil.parser
+import re
+
+model_name = "distilbert-base-cased-distilled-squad"
+revision = "626af31"
+qa_pipeline = pipeline("question-answering", model=model_name, revision=revision, framework="pt")
+
 
 
 ##################################################
@@ -1039,3 +1048,60 @@ def check_intersection(x):
 
     else:
         return 1
+    
+#######################################
+### Pdf_text_extraction.ipynb
+#######################################
+def extract_text_with_pymupdf(pdf_path):
+    """
+    Extracts text from a PDF file using PyMuPDF.
+    """
+    text = ""
+    try:
+        doc = fitz.open(pdf_path)
+        for page in doc:
+            text += page.get_text() + " "
+    except Exception as e:
+        print(f"Error reading {pdf_path} with PyMuPDF: {e}")
+    return text
+
+
+question = "What is the planting date?"
+def is_valid_date(date_str):
+    """Check if a string can be parsed as a date or is a standalone year."""
+    try:
+       
+        date_str = re.sub(r'[^a-zA-Z0-9/\-\.\s]', '', date_str).strip()
+  
+        patterns = [
+            r'^\d{4}$',                 
+            r'\d{4}-\d{2}-\d{2}',       
+            r'\d{2}/\d{2}/\d{4}',       
+            r'\b[A-Za-z]+\s\d{1,2},\s\d{4}\b',  
+        ]
+        
+        
+        if re.match(r'^\d{4}$', date_str):
+            return True  
+        
+       
+        if any(re.match(pattern, date_str) for pattern in patterns):
+            dateutil.parser.parse(date_str, fuzzy=True)
+            return True
+        return False
+    except:
+        return False
+
+def extract_planting_date(text):
+    try:
+        result = qa_pipeline(question=question, context=text, handle_impossible_answer=True)
+        answer = result["answer"]
+        confidence = result["score"]
+        
+
+        if confidence > 0.5 and is_valid_date(answer):
+            return answer
+        return None
+    except Exception as e:
+        print(f"Error extracting planting date: {e}")
+        return None
