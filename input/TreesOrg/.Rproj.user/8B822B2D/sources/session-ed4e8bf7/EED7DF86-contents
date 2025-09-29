@@ -1,0 +1,44 @@
+# Install and load the required packages
+install.packages("httr")
+install.packages("jsonlite")
+install.packages("dplyr")
+install.packages("purrr")
+library(httr)
+library(jsonlite)
+library(dplyr)
+library(purrr)
+
+# Fetch the data from the API
+url <- "https://trees.org/wp-json/trees/v1/project/posts"
+response <- GET(url)
+
+# Check if the request was successful
+if (status_code(response) == 200) {
+  # Parse the JSON content
+  data <- content(response, as = "parsed", type = "application/json")
+  
+  # Extract the 'data' part which is a list of 86 elements
+  data_list <- data$data
+  
+  # Convert the list of lists to a dataframe
+  df <- map_dfr(data_list, function(x) {
+    # Flatten each sub-list
+    x <- map(x, ~ if (is.list(.x)) paste(unlist(.x), collapse = ", ") else .x)
+    as.data.frame(x, stringsAsFactors = FALSE)
+  })
+  
+  # Print the first few rows of the dataframe
+  print(head(df))
+} else {
+  print(paste("Failed to fetch data. Status code:", status_code(response)))
+}
+
+
+
+# Save the dataframe as a CSV file
+write.csv(df, file = "data.csv", row.names = FALSE)
+
+# Save the dataframe as a JSON file
+json_data <- toJSON(df, pretty = TRUE)
+write(json_data, file = "data.json")
+

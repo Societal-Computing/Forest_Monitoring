@@ -1,0 +1,142 @@
+[
+  {
+    "id": "omper396lw3gxwq0",
+    "type": "Feature",
+    "geometry_type": "Point",
+    "geometry_coordinates": [
+      [25.2555, -32.8334]
+    ],
+    "properties_id": "omper396lw3gxwq0",
+    "properties_name": "Somerset East Spekboom Restoration",
+    "properties_slug": "cpi2301",
+    "properties_type": "project",
+    "properties_image": "YFs3KVkT5wyLQp2XALcDPjv9MuhpUa4sPmlQbUXo.jpg",
+    "properties_region": "Eastern Cape",
+    "properties_countries": [
+      ["South Africa"]
+    ],
+    "properties_activity_type": [
+      ["Restoration"]
+    ]
+  },
+  {
+    "id": "g0drw38lmmjx4z9q",
+    "type": "Feature",
+    "geometry_type": "Point",
+    "geometry_coordinates": [
+      [29.6963, -2.1423]
+    ],
+    "properties_id": "g0drw38lmmjx4z9q",
+    "properties_name": "Rwanda Bamboo River Restoration",
+    "properties_slug": "cpi2207",
+    "properties_type": "project",
+    "properties_image": "sCEOaHMQkFtuiXjR7Q2Ke8puX9pPrJCyqLorQmq0.jpg",
+    "properties_region": "Muhanga, Ruhango & Karongi",
+    "properties_countries": [
+      ["Rwanda"]
+    ],
+    "properties_activity_type": [
+      ["Restoration"]
+    ]
+  },
+  {
+    "id": "ln5pa3mml739ogex",
+    "type": "Feature",
+    "geometry_type": "Point",
+    "geometry_coordinates": [
+      [26.3263, -33.2508]
+    ],
+    "properties_id": "ln5pa3mml739ogex",
+    "properties_name": "Mahkanda Spekboom Restoration",
+    "properties_slug": "cpi2203",
+    "properties_type": "project",
+    "properties_image": "icVp9uj48DKUSjliX2dPQUmKTUDPVz9JyYRVIYYf.jpg",
+    "properties_region": "Eastern Cape",
+    "properties_countries": [
+      ["South Africa"]
+    ],
+    "properties_activity_type": [
+      ["Restoration"]
+    ]
+  },
+  {
+    "id": "wermv3llmd36koql",
+    "type": "Feature",
+    "geometry_type": "Point",
+    "geometry_coordinates": [
+      [85.5019, 23.0209]
+    ],
+    "properties_id": "wermv3llmd36koql",
+    "properties_name": "East India Tasar Afforestation",
+    "properties_slug": "cpi2209",
+    "properties_type": "project",
+    "properties_image": "C3WduX0jsTP3xILKpdH2ZGfGdhYlilIgWV6iEJHg.jpg",
+    "properties_region": "Simdega & Purulia",
+    "properties_countries": [
+      ["India"]
+    ],
+    "properties_activity_type": [
+      ["Plantation Forestry"]
+    ]
+  },
+  {
+    "id": "q4d7myr9gkya6kzx",
+    "type": "Feature",
+    "geometry_type": "Point",
+    "geometry_coordinates": [
+      [-0.8182, 6.8247]
+    ],
+    "properties_id": "q4d7myr9gkya6kzx",
+    "properties_name": "North Bandai Bamboo Reforestation",
+    "properties_slug": "cpi2103",
+    "properties_type": "project",
+    "properties_image": "XTk0EmUQhxHvtQOjfUHiXel0W4CtLjchNVfiz4zH.jpg",
+    "properties_region": "Ashanti",
+    "properties_countries": [
+      ["Ghana"]
+    ],
+    "properties_activity_type": [
+      ["Plantation Forestry"]
+    ]
+  },
+  {
+    "id": "abwdoj45zbykm8zg",
+    "type": "Feature",
+    "geometry_type": "Point",
+    "geometry_coordinates": [
+      [26.6511, -33.4959]
+    ],
+    "properties_id": "abwdoj45zbykm8zg",
+    "properties_name": "Eastern Cape Bamboo Revegetation",
+    "properties_slug": "cpi2208",
+    "properties_type": "project",
+    "properties_image": "jyiCPPdXRpYPwd1vNVDAJRz4XmW6OTiCwhrb6TNF.jpg",
+    "properties_region": "Eastern Cape",
+    "properties_countries": [
+      ["South Africa"]
+    ],
+    "properties_activity_type": [
+      ["Plantation Forestry"]
+    ]
+  },
+  {
+    "id": "e97xby0pxr3pvo6g",
+    "type": "Feature",
+    "geometry_type": "Point",
+    "geometry_coordinates": [
+      [39.6675, -4.0118]
+    ],
+    "properties_id": "e97xby0pxr3pvo6g",
+    "properties_name": "Tudor Creek Mangrove Restoration",
+    "properties_slug": "cpi2105",
+    "properties_type": "project",
+    "properties_image": "BwIWvUXzTIE89VQlNppNsGyLuJFYEuOT6gmnBY2W.jpg",
+    "properties_region": "Mombasa",
+    "properties_countries": [
+      ["Kenya"]
+    ],
+    "properties_activity_type": [
+      ["Restoration"]
+    ]
+  }
+]

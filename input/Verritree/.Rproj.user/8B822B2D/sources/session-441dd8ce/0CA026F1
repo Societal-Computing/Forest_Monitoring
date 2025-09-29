@@ -1,0 +1,28 @@
+{
+    "id": "0CA026F1",
+    "path": null,
+    "project_path": null,
+    "type": "object_explorer",
+    "hash": "0",
+    "contents": "",
+    "dirty": false,
+    "created": 1717415795076.0,
+    "source_on_save": false,
+    "relative_order": 6,
+    "properties": {
+        "id": "e8a4c03c3b10411aa432ab0a49d887f4",
+        "name": "combined_df[[14]][[1]]",
+        "title": "combined_df[[14]][[1]]",
+        "language": "R",
+        "source_window_id": "",
+        "Source": "Source"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 2001562907848,
+    "encoding": "",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1717415795076,
+    "read_only": false,
+    "read_only_alternatives": []
+}

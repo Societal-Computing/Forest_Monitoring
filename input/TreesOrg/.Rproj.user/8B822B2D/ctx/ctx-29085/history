@@ -1,0 +1,82 @@
+#Libraries
+library(httr)
+library(jsonlite)
+# Fetch the data from the API
+url <- "https://trees.org/wp-json/trees/v1/project/posts"
+response <- GET(url)
+# Check if the request was successful
+if (status_code(response) == 200) {
+# Parse the JSON content
+data <- content(response, as = "parsed", type = "application/json")
+# Convert the JSON data to a dataframe
+df <- as.data.frame(data)
+# Print the first few rows of the dataframe
+print(head(df))
+} else {
+print(paste("Failed to fetch data. Status code:", status_code(response)))
+}
+View(data)
+library(httr)
+library(jsonlite)
+# Fetch the data from the API
+url <- "https://trees.org/wp-json/trees/v1/project/posts"
+response <- GET(url)
+# Check if the request was successful
+if (status_code(response) == 200) {
+# Parse the JSON content
+data <- content(response, as = "parsed", type = "application/json")
+# Extract the 'data' part which is a list of 86 elements
+data_list <- data$data
+# Convert the list to a dataframe
+df <- do.call(rbind, lapply(data_list, as.data.frame))
+# Print the first few rows of the dataframe
+print(head(df))
+} else {
+print(paste("Failed to fetch data. Status code:", status_code(response)))
+}
+View(data_list)
+library(httr)
+library(jsonlite)
+# Fetch the data from the API
+url <- "https://trees.org/wp-json/trees/v1/project/posts"
+response <- GET(url)
+# Check if the request was successful
+if (status_code(response) == 200) {
+# Parse the JSON content
+data <- content(response, as = "parsed", type = "application/json")
+# Extract the 'data' part which is a list of 86 elements
+data_list <- data$data
+# Convert the list to a dataframe
+df_list <- lapply(data_list, function(x) {
+as.data.frame(x, stringsAsFactors = FALSE)
+})
+df <- do.call(rbind, df_list)
+# Print the first few rows of the dataframe
+print(head(df))
+} else {
+print(paste("Failed to fetch data. Status code:", status_code(response)))
+}
+View(data_list)
+View(response)
+View(data_list)
+# Install and load the required packages
+install.packages("httr")
+install.packages("jsonlite")
+library(httr)
+library(jsonlite)
+# Fetch the data from the API
+url <- "https://trees.org/wp-json/trees/v1/project/posts"
+response <- GET(url)
+# Check if the request was successful
+if (status_code(response) == 200) {
+# Parse the JSON content
+data <- content(response, as = "parsed", type = "application/json")
+# Extract the 'data' part which is a list of 86 elements
+data_list <- data$data
+# Convert the list to a dataframe
+df <- do.call(rbind, lapply(data_list, as.data.frame))
+# Print the first few rows of the dataframe
+print(head(df))
+} else {
+print(paste("Failed to fetch data. Status code:", status_code(response)))
+}

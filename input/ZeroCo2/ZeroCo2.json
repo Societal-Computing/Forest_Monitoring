@@ -1,0 +1,243 @@
+[
+  {
+    "countryId": 46,
+    "countryName": "Guatemala",
+    "user_created": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_created": "2023-09-05T16:18:05.252Z",
+    "user_updated": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_updated": "2024-01-31T22:59:15.552Z",
+    "project_id": "PJ01",
+    "country": 46,
+    "sort": 1,
+    "id": "ae3f0a01-ecd4-43bb-a814-1ba12ac2c8f5",
+    "status": "published",
+    "project_name": "Riforestare per resistere",
+    "description": "Creiamo foreste in Guatemala per supportare comunità contadine a resistere agli effetti della crisi climatica e alle oppressioni dei più forti.",
+    "description_translations": [
+      {
+        "language": "EN",
+        "project_description": "We create forests in Guatemala to sustain peasant communities as they resist the effects of the climate crisis and the oppression of the powerful."
+      }
+    ],
+    "project_name_translations": [
+      {
+        "language": "IT",
+        "project_name": "Riforestare per resistere"
+      },
+      {
+        "language": "EN",
+        "project_name": "Resistance through reforestation"
+      }
+    ],
+    "is_posidonia": false,
+    "gps_position.coordinates": [-89.7276, 16.6798],
+    "gps_position.type": "Point"
+  },
+  {
+    "countryId": 46,
+    "countryName": "Guatemala",
+    "user_created": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_created": "2023-09-05T19:13:23.197Z",
+    "user_updated": "d811e06f-a3a4-4475-ba4a-3573f776e63a",
+    "date_updated": "2024-01-31T16:58:43.399Z",
+    "project_id": "PJ02",
+    "country": 46,
+    "sort": 3,
+    "id": "2d89b3a6-90f1-4981-8779-c3bf325e53f9",
+    "status": "published",
+    "project_name": "Mangrovie per la biodiversità costiera",
+    "description": "Piantiamo nuovi mangrovieti nelle coste oceaniche del Guatemala per ripristinare la biodiversità marina da cui dipendono le comunità locali.",
+    "description_translations": [
+      {
+        "language": "EN",
+        "project_description": "We plant new mangrove groves on Guatemala's coasts to restore the marine biodiversity on which local communities depend."
+      }
+    ],
+    "project_name_translations": [
+      {
+        "language": "IT",
+        "project_name": "Mangrovie per la biodiversità costiera"
+      },
+      {
+        "language": "EN",
+        "project_name": "Mangroves for coastal biodiversity "
+      }
+    ],
+    "is_posidonia": false,
+    "gps_position.coordinates": [-91.603, 14.097],
+    "gps_position.type": "Point"
+  },
+  {
+    "countryId": 47,
+    "countryName": "Tanzania",
+    "user_created": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_created": "2023-09-05T19:12:27.185Z",
+    "user_updated": "0c1f3be3-89e0-48af-bf0a-38752ef0ff9a",
+    "date_updated": "2024-02-01T09:52:38.834Z",
+    "local_authority": "a9c481bd-a233-4a38-93f4-69f2035f7125",
+    "project_id": "PJ01",
+    "country": 47,
+    "sort": 5,
+    "id": "43bfd0d7-d579-4131-9ab5-d79c3c084149",
+    "status": "published",
+    "project_name": "Contrasto dell'erosione a difesa delle comunità Maasai",
+    "description": "Piantiamo nuovi alberi con le donne delle comunità Masaai, favorendo l'empowerment femminile e contrastando l’erosione dei suoli.",
+    "description_translations": [
+      {
+        "language": "EN",
+        "project_description": "We plant new trees in collaboration with women from Masaai communities, promoting their empowerment and counteracting soil erosion."
+      }
+    ],
+    "project_name_translations": [
+      {
+        "language": "IT",
+        "project_name": "Contrasto dell'erosione a difesa delle comunità maasai"
+      },
+      {
+        "language": "EN",
+        "project_name": "Counteracting soil erosion in defence of Maasai communities"
+      }
+    ],
+    "is_posidonia": false,
+    "gps_position.coordinates": [36.5974, -3.3363],
+    "gps_position.type": "Point"
+  },
+  {
+    "countryId": 48,
+    "countryName": "Italy",
+    "user_created": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_created": "2023-09-05T19:14:52.760Z",
+    "user_updated": "d811e06f-a3a4-4475-ba4a-3573f776e63a",
+    "date_updated": "2024-01-31T17:00:39.244Z",
+    "project_id": "PJ01",
+    "country": 48,
+    "sort": 4,
+    "id": "602b8265-7f31-47c8-b7f5-1c20d858f2dd",
+    "status": "published",
+    "project_name": "Adattamento al cambiamento climatico",
+    "description": "Piantiamo alberi nelle cooperative agricole sociali a supporto di persone svantaggiate mediante l'adozione di pratiche agronomiche sostenibili.",
+    "description_translations": [
+      {
+        "language": "EN",
+        "project_description": "We plant trees in social agricultural cooperatives to support disadvantaged people while promoting the adoption of sustainable agronomic practices."
+      }
+    ],
+    "project_name_translations": [
+      {
+        "language": "IT",
+        "project_name": "Adattamento al cambiamento climatico"
+      },
+      {
+        "language": "EN",
+        "project_name": "Adapting to climate change"
+      }
+    ],
+    "is_posidonia": false,
+    "gps_position.coordinates": [12.5324, 41.9028],
+    "gps_position.type": "Point"
+  },
+  {
+    "countryId": 48,
+    "countryName": "Italy",
+    "user_created": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_created": "2023-09-05T19:15:12.956Z",
+    "user_updated": "d811e06f-a3a4-4475-ba4a-3573f776e63a",
+    "date_updated": "2024-02-13T19:44:32.451Z",
+    "project_id": "PJ02",
+    "country": 48,
+    "sort": 7,
+    "id": "43d4d694-59de-4116-8656-2aa0093388e5",
+    "status": "published",
+    "project_name": "Riforestazione marina",
+    "description": "Creiamo nuove praterie di Posidonia oceanica lungo le coste del Mar Mediterraneo per preservare l’ecosistema marino.",
+    "description_translations": [
+      {
+        "language": "EN",
+        "project_description": "We plant new Posidonia oceanica meadows along the Mediterranean Sea coasts to safeguard the marine ecosystem."
+      }
+    ],
+    "project_name_translations": [
+      {
+        "language": "IT",
+        "project_name": "Riforestazione marina"
+      },
+      {
+        "language": "EN",
+        "project_name": "Reforesting the sea"
+      }
+    ],
+    "is_posidonia": true,
+    "gps_position.coordinates": [9.6131, 40.9965],
+    "gps_position.type": "Point"
+  },
+  {
+    "countryId": 49,
+    "countryName": "Peru",
+    "user_created": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_created": "2023-09-05T19:13:58.702Z",
+    "user_updated": "0c1f3be3-89e0-48af-bf0a-38752ef0ff9a",
+    "date_updated": "2024-02-01T09:52:11.182Z",
+    "local_authority": "c8deaa47-5c14-4b4f-aa8a-80c1b85d7df6",
+    "project_id": "PJ01",
+    "country": 49,
+    "sort": 2,
+    "id": "281380a8-a4d0-43f8-b124-9343014c08de",
+    "status": "published",
+    "project_name": "Difesa dell'Amazzonia",
+    "description": "Recuperiamo sementi di specie in via d’estinzione per salvaguardare ecosistemi vulnerabili all’interno della foresta amazzonica peruviana.",
+    "description_translations": [
+      {
+        "language": "EN",
+        "project_description": "We recover seeds of endangered species to safeguard vulnerable ecosystems within the Peruvian Amazon rainforest."
+      }
+    ],
+    "project_name_translations": [
+      {
+        "language": "IT",
+        "project_name": "Difesa dell'Amazzonia"
+      },
+      {
+        "language": "EN",
+        "project_name": "Defending the Amazon"
+      }
+    ],
+    "is_posidonia": false,
+    "gps_position.coordinates": [-69.1935, -12.5892],
+    "gps_position.type": "Point"
+  },
+  {
+    "countryId": 50,
+    "countryName": "Argentina",
+    "user_created": "8e9fdc64-63e2-442e-b1e8-fef6d1bcfe06",
+    "date_created": "2023-09-05T19:14:29.289Z",
+    "user_updated": "0c1f3be3-89e0-48af-bf0a-38752ef0ff9a",
+    "date_updated": "2024-02-01T09:53:05.014Z",
+    "local_authority": "ff366687-33f1-4a4e-ab38-a34218eec306",
+    "project_id": "PJ01",
+    "country": 50,
+    "sort": 6,
+    "id": "a51dd1a5-b84e-42b7-a477-703788d37757",
+    "status": "published",
+    "project_name": "Ripristinare habitat distrutti dagli incendi",
+    "description": "Rigeneriamo boschi nativi della Patagonia andina colpiti dagli incendi, in collaborazione con le comunità locali che si prendono cura delle foreste.",
+    "description_translations": [
+      {
+        "language": "EN",
+        "project_description": "We regenerate native forests in Andean Patagonia affected by fires, in collaboration with local communities who take care of the forests."
+      }
+    ],
+    "project_name_translations": [
+      {
+        "language": "IT",
+        "project_name": "Ripristinare habitat distrutti dagli incendi"
+      },
+      {
+        "language": "EN",
+        "project_name": "Restoring habitats destroyed by wildfires"
+      }
+    ],
+    "is_posidonia": false,
+    "gps_position.coordinates": [-71.3322, -42.9407],
+    "gps_position.type": "Point"
+  }
+]
